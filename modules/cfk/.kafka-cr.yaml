@@ -1,0 +1,19 @@
+"apiVersion": "platform.confluent.io/v1beta1"
+"kind": "Kafka"
+"metadata":
+  "name": "kafka"
+  "namespace": "confluent"
+"spec":
+  "dataVolumeCapacity": "1Gi"
+  "dependencies":
+    "kRaftController":
+      "clusterRef":
+        "name": "kcontroller"
+        "namespace": "confluent"
+  "image":
+    "application": "confluentinc/cp-kafka:7.5.2"
+    "init": "confluentinc/confluent-init-container:2.11.2"
+    "pullPolicy": "IfNotPresent"
+  "replicas": 3
+  "storageClass":
+    "name": "ebs-csi-default-sc"

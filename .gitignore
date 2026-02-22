@@ -35,3 +35,7 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# CFK module generated manifests (applied via kubectl)
+kafka-cr.yaml
+kraft-cr.yaml

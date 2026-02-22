@@ -1,0 +1,26 @@
+# Kafka with external access via LoadBalancer for same-VPC clients (EC2, other pods).
+# Apply after Zookeeper is ready. Uses internal NLB on AWS so only clients in the VPC can connect.
+# Based on: https://github.com/confluentinc/confluent-kubernetes-examples/blob/master/networking/external-access-load-balancer-deploy/confluent-platform.yaml
+apiVersion: platform.confluent.io/v1beta1
+kind: Kafka
+metadata:
+  name: kafka
+spec:
+  replicas: 3
+  image:
+    application: confluentinc/cp-server:7.9.0
+    init: confluentinc/confluent-init-container:2.11.0
+    pullPolicy: IfNotPresent
+  dataVolumeCapacity: 10Gi
+  storageClass:
+    name: ebs-csi-default-sc
+  listeners:
+    external:
+      externalAccess:
+        type: loadBalancer
+        loadBalancer:
+          # Must match Terraform var kafka_dns_domain (e.g. envs/dev) and scripts/create-kafka-dns.sh DOMAIN so Route 53 CNAMEs match what Kafka advertises.
+          domain: confluent.local
+          annotations:
+            # Internal NLB: reachable only from within the VPC (EC2, same-VPC pods)
+            service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
