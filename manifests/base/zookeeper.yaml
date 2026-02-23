@@ -1,0 +1,16 @@
+# Zookeeper for Confluent Platform (required for Kafka when not using KRaft).
+# Apply first. Based on: https://github.com/confluentinc/confluent-kubernetes-examples/blob/master/networking/external-access-load-balancer-deploy/confluent-platform.yaml
+apiVersion: platform.confluent.io/v1beta1
+kind: Zookeeper
+metadata:
+  name: zookeeper
+spec:
+  replicas: 3
+  image:
+    application: confluentinc/cp-zookeeper:7.9.0
+    init: confluentinc/confluent-init-container:2.11.0
+    pullPolicy: IfNotPresent
+  dataVolumeCapacity: 10Gi
+  logVolumeCapacity: 10Gi
+  storageClass:
+    name: ebs-csi-default-sc

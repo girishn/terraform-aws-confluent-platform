@@ -1,0 +1,8 @@
+# Dev overlay: namespace and any dev-specific settings.
+# Use with: kubectl apply -k manifests/overlays/dev (from repo root)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: confluent
+resources:
+  - ../../base
+# Optional: add patches here (e.g. replicas, storage size) via patchesStrategicMerge or patches.

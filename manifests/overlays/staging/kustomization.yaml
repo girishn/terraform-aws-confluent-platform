@@ -1,0 +1,8 @@
+# Staging overlay: separate namespace; add patches for replicas/storage as needed.
+# Use with: kubectl apply -k manifests/overlays/staging (from repo root)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: confluent-staging
+resources:
+  - ../../base
+# Example: use patchesStrategicMerge: [kafka-replicas.yaml] to override replicas or storage.
