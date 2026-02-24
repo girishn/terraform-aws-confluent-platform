@@ -8,56 +8,86 @@ Reusable Terraform and manifests for **provisioning Confluent Platform (Kafka) o
 
 Use this repo to stand up an EKS cluster and Confluent Platform (Zookeeper + Kafka) that you can connect to from EC2 or pods in the same VPC.
 
-### Option A – Use the included dev environment
+### Quick start – dev environment (copy/paste)
 
-1. **Clone and enter the dev environment**
-  ```bash
-   git clone <this-repo-url> && cd terraform-aws-confluent-platform/envs/dev
-  ```
-2. **Pin to a release (recommended)**
-  Check out a tag so upgrades are explicit:  
-   `git checkout v1.0.0`
-3. **Configure**
-  - Copy or create `terraform.tfvars` (e.g. `region`, `name`, `cluster_version`).  
-  - See `variables.tf` for all options.
-4. **Deploy infra and CFK operator**
-  ```bash
-   terraform init
-   terraform apply
-  ```
-5. **Apply Confluent CRs (Zookeeper + Kafka)**
-   
-   From the **repo root**, run the following commands to apply the dev overlay using Kustomize and verify that all Kafka and Zookeeper pods are ready:
+1. **Clone and enter the repo**
 
    ```bash
+   git clone <this-repo-url>
+   cd terraform-aws-confluent-platform
+   ```
+
+2. **Pin to a release (recommended)**
+
+   Check out a tag so upgrades are explicit:
+
+   ```bash
+   git checkout v1.0.0
+   ```
+
+3. **Configure the dev environment**
+
+   ```bash
+   cd envs/dev
+   cp terraform.tfvars.example terraform.tfvars  # if present; otherwise create terraform.tfvars
+   # Edit terraform.tfvars: set region, name (e.g. confluent-dev), cluster_version, etc.
+   # See variables.tf in this dir for all options.
+   ```
+
+4. **Deploy network, EKS, and CFK operator**
+
+   ```bash
+   terraform init
+   terraform apply
+   ```
+
+5. **Apply Confluent CRs (Zookeeper + Kafka)**
+
+   From the **repo root**:
+
+   ```bash
+   cd ../..    # back to terraform-aws-confluent-platform/
+   aws eks update-kubeconfig --name confluent-dev-eks --region us-east-1
    kubectl apply -k manifests/overlays/dev
    kubectl wait --for=jsonpath='{.status.readyReplicas}'=3 statefulset/zookeeper -n confluent --timeout=300s
    kubectl wait --for=jsonpath='{.status.readyReplicas}'=3 statefulset/kafka -n confluent --timeout=300s
    ```
 
    - The cluster name comes from the `name` variable (e.g. `confluent-dev` → `confluent-dev-eks`).
-   - For more details or different environments, see [manifests/README.md](manifests/README.md) for full instructions and customization options.
-6. **Get Kafka bootstrap for producers/consumers**
-  `kubectl get svc -n confluent -l app=kafka`  
-   Use the bootstrap LoadBalancer hostname and port 9092. See `manifests/README.md` for DNS and security groups.
+   - For more details or different environments, see [manifests/README.md](manifests/README.md).
 
-7. **DNS so pods and EC2 in the VPC can resolve Kafka (recommended)**  
-   Terraform creates a Route 53 private hosted zone for `confluent.local` (variable `kafka_dns_domain`). After Kafka is running and its LoadBalancer services have external hostnames (check with `kubectl get svc -n confluent -l app=kafka`), run the script once so `kafka.confluent.local` and `b0/b1/b2.confluent.local` resolve in the VPC.  
+6. **DNS so pods and EC2 in the VPC can resolve Kafka (recommended)**
+
+   Terraform creates a Route 53 private hosted zone for `confluent.local` (variable `kafka_dns_domain`). After Kafka is running and its LoadBalancer services have external hostnames (check with `kubectl get svc -n confluent -l app=kafka`), run this script once so `kafka.confluent.local` and `b0/b1/b2.confluent.local` resolve in the VPC.
+
    **Prerequisites:** `kubectl` (context set to your EKS cluster), `jq`, AWS CLI, and bash (e.g. Git Bash on Windows).
 
-   **From repo root:**
+   From **repo root**:
+
    ```bash
    ZONE_ID=$(terraform -chdir=envs/dev output -raw kafka_dns_zone_id)
    ZONE_ID=$ZONE_ID ./scripts/create-kafka-dns.sh
    ```
 
-   **From `envs/dev` (script is also in `envs/dev/scripts/` so you don't need `../`):**
+   Or from **envs/dev**:
+
    ```bash
+   cd envs/dev
    ZONE_ID=$(terraform output -raw kafka_dns_zone_id)
    ZONE_ID=$ZONE_ID ./scripts/create-kafka-dns.sh
    ```
 
-   Then use **`kafka.confluent.local:9092`** as `bootstrap.servers` from any pod or EC2 in the same VPC. If you customize the `kafka_dns_domain` variable, set the same domain in `manifests/base/kafka.yaml` (under `listeners.external.loadBalancer.domain`) and re-apply the overlay so Kafka advertises the same domain the script uses for Route 53.
+7. **Get Kafka bootstrap for producers/consumers**
+
+   ```bash
+   kubectl get svc -n confluent -l type=kafka
+   ```
+
+   Use the bootstrap LoadBalancer hostname and port **9092**. With the DNS script and default domain, you can use:
+
+   - `kafka.confluent.local:9092` as `bootstrap.servers` from any pod or EC2 in the same VPC.
+
+   If you customize the `kafka_dns_domain` variable, set the same domain in `manifests/base/kafka.yaml` (under `listeners.external.loadBalancer.domain`) and re-apply the overlay so Kafka advertises the same domain the script uses for Route 53.
 
 ### Option B – Add your own environment
 
