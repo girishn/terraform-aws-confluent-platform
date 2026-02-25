@@ -1,0 +1,12 @@
+# Schema Registry for Confluent Platform. Required by Control Center for schema management.
+# Apply after Kafka is ready.
+apiVersion: platform.confluent.io/v1beta1
+kind: SchemaRegistry
+metadata:
+  name: schemaregistry
+spec:
+  replicas: 1
+  image:
+    application: confluentinc/cp-schema-registry:7.9.0
+    init: confluentinc/confluent-init-container:2.11.0
+    pullPolicy: IfNotPresent

@@ -56,9 +56,9 @@ Use this repo to stand up an EKS cluster and Confluent Platform (Zookeeper + Kaf
    - The cluster name comes from the `name` variable (e.g. `confluent-dev` → `confluent-dev-eks`).
    - For more details or different environments, see [manifests/README.md](manifests/README.md).
 
-6. **DNS so pods and EC2 in the VPC can resolve Kafka (recommended)**
+6. **DNS so pods and EC2 in the VPC can resolve Kafka and Control Center (recommended)**
 
-   Terraform creates a Route 53 private hosted zone for `confluent.local` (variable `kafka_dns_domain`). After Kafka is running and its LoadBalancer services have external hostnames (check with `kubectl get svc -n confluent -l app=kafka`), run this script once so `kafka.confluent.local` and `b0/b1/b2.confluent.local` resolve in the VPC.
+   Terraform creates a Route 53 private hosted zone for `confluent.local` (variable `kafka_dns_domain`). After Kafka and Control Center are running and their LoadBalancer services have external hostnames (check with `kubectl get svc -n confluent`), run this script once so `kafka.confluent.local`, `b0/b1/b2.confluent.local`, and `controlcenter.confluent.local` resolve in the VPC.
 
    **Prerequisites:** `kubectl` (context set to your EKS cluster), `jq`, AWS CLI, and bash (e.g. Git Bash on Windows).
 
@@ -69,15 +69,17 @@ Use this repo to stand up an EKS cluster and Confluent Platform (Zookeeper + Kaf
    ZONE_ID=$ZONE_ID ./scripts/create-kafka-dns.sh
    ```
 
-   Or from **envs/dev**:
+7. **Access Control Center** (view topics, inspect messages)
 
+   From within the VPC: `http://controlcenter.confluent.local:9021` (after running the DNS script).
+
+   From anywhere via port-forward:
    ```bash
-   cd envs/dev
-   ZONE_ID=$(terraform output -raw kafka_dns_zone_id)
-   ZONE_ID=$ZONE_ID ./scripts/create-kafka-dns.sh
+   kubectl port-forward controlcenter-0 9021:9021 -n confluent
    ```
+   Then open http://localhost:9021
 
-7. **Get Kafka bootstrap for producers/consumers**
+8. **Get Kafka bootstrap for producers/consumers**
 
    ```bash
    kubectl get svc -n confluent -l type=kafka

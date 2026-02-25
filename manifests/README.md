@@ -2,7 +2,7 @@
 
 Zookeeper + Kafka for AWS EKS with **external access via internal NLB**, so clients in the same VPC (EC2, other pods) can publish and consume. Uses **Kustomize** for a base and environment-specific overlays.
 
-- **Base** (`base/`) – Shared Zookeeper and Kafka CRs (no namespace; overlays set it).
+- **Base** (`base/`) – Shared Zookeeper, Kafka, Schema Registry, Connect, ksqlDB, and Control Center CRs (no namespace; overlays set it).
 - **Overlays** – Per-environment namespace and optional patches:
   - **dev** – namespace `confluent` (matches default CFK operator install from `envs/dev`).
   - **staging** – namespace `confluent-staging`; use as a template for other envs (ensure CFK operator watches that namespace if you use a different one).
@@ -18,6 +18,8 @@ Based on [Confluent's external-access-load-balancer example](https://github.com/
    kubectl apply -k manifests/overlays/dev
    kubectl wait --for=jsonpath='{.status.readyReplicas}'=3 statefulset/zookeeper -n confluent --timeout=300s
    kubectl wait --for=jsonpath='{.status.readyReplicas}'=3 statefulset/kafka -n confluent --timeout=300s
+   # Schema Registry, Connect, ksqlDB, and Control Center start after Kafka; wait as needed:
+   kubectl wait --for=condition=ready pod -l app=controlcenter -n confluent --timeout=600s 2>/dev/null || true
   ```
    For staging (namespace `confluent-staging`), use namespace `confluent-staging` in the wait commands.
 4. Verify pods: `kubectl get pods -n confluent -l app=zookeeper` and `kubectl get pods -n confluent -l app=kafka`.
@@ -34,7 +36,7 @@ Based on [Confluent's external-access-load-balancer example](https://github.com/
 
 Kafka is exposed via an **internal** Network Load Balancer. Two options:
 
-- **With DNS (recommended):** Terraform (envs/dev) creates a Route 53 private hosted zone for the Kafka `domain` (e.g. `confluent.local`). After Kafka is up and LoadBalancer services have hostnames, run **`scripts/create-kafka-dns.sh`** once (from repo root or from envs/dev using `envs/dev/scripts/create-kafka-dns.sh`). The script creates CNAMEs for **kafka.confluent.local** (bootstrap) and **b0/b1/b2.confluent.local** (brokers). Clients need all four to resolve; if you see `UnknownHostException` for b0/b1/b2, re-run the script and ensure all Kafka services have EXTERNAL-IP, then retry. Full steps: root [README](../README.md) step 7.
+- **With DNS (recommended):** Terraform (envs/dev) creates a Route 53 private hosted zone for the Kafka `domain` (e.g. `confluent.local`). After Kafka and Control Center are up and LoadBalancer services have hostnames, run **`scripts/create-kafka-dns.sh`** once. The script creates CNAMEs for **kafka.confluent.local** (bootstrap), **b0/b1/b2.confluent.local** (brokers), and **controlcenter.confluent.local** (Control Center UI). Access Control Center at `http://controlcenter.confluent.local:9021` from within the VPC. Alternatively, use `kubectl port-forward controlcenter-0 9021:9021 -n confluent` and open http://localhost:9021.
 - **Without DNS:** Use the bootstrap LoadBalancer hostname from `kubectl get svc -n confluent -l type=kafka` (e.g. `kafka-bootstrap-xxx.elb.us-east-1.amazonaws.com:9092`). This works for many clients; if you see broker connection issues, set up DNS as above.
 
 ## Preview built manifests

@@ -1,0 +1,15 @@
+# Kafka Connect. Required by Control Center for connector management.
+# Apply after Kafka is ready.
+apiVersion: platform.confluent.io/v1beta1
+kind: Connect
+metadata:
+  name: connect
+spec:
+  replicas: 1
+  image:
+    application: confluentinc/cp-server-connect:7.9.0
+    init: confluentinc/confluent-init-container:2.11.0
+    pullPolicy: IfNotPresent
+  dependencies:
+    kafka:
+      bootstrapEndpoint: kafka:9071

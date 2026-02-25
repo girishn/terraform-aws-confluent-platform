@@ -1,6 +1,11 @@
-# Base Confluent Platform (Zookeeper + Kafka). Overlays set namespace and env-specific patches.
+# Base Confluent Platform (Zookeeper + Kafka + Schema Registry + Connect + ksqlDB + Control Center).
+# Overlays set namespace and env-specific patches.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - zookeeper.yaml
   - kafka.yaml
+  - schemaregistry.yaml
+  - connect.yaml
+  - ksqldb.yaml
+  - controlcenter.yaml

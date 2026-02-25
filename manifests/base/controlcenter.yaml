@@ -1,0 +1,32 @@
+# Confluent Control Center – monitor Kafka, view topics, inspect messages.
+# Requires Schema Registry, Connect, and ksqlDB. Apply after they are ready.
+# Access via: kubectl port-forward controlcenter-0 9021:9021 -n confluent
+# Then open http://localhost:9021
+apiVersion: platform.confluent.io/v1beta1
+kind: ControlCenter
+metadata:
+  name: controlcenter
+spec:
+  replicas: 1
+  image:
+    application: confluentinc/cp-enterprise-control-center:7.9.0
+    init: confluentinc/confluent-init-container:2.11.0
+    pullPolicy: IfNotPresent
+  dataVolumeCapacity: 10Gi
+  storageClass:
+    name: ebs-csi-default-sc
+  dependencies:
+    schemaRegistry:
+      url: http://schemaregistry.confluent.svc.cluster.local:8081
+    ksqldb:
+      - name: ksqldb
+        url: http://ksqldb.confluent.svc.cluster.local:8088
+    connect:
+      - name: connect
+        url: http://connect.confluent.svc.cluster.local:8083
+  externalAccess:
+    type: loadBalancer
+    loadBalancer:
+      domain: confluent.local
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"

@@ -56,8 +56,10 @@ while IFS= read -r line; do
   elif [[ "$name" =~ ^kafka-([0-9]+)(-lb)?$ ]]; then
     # CFK uses kafka-0, kafka-1, kafka-2 or kafka-0-lb, kafka-1-lb, kafka-2-lb
     RECORDS["b${BASH_REMATCH[1]}"]="$hostname"
+  elif [[ "$name" == *controlcenter* ]]; then
+    RECORDS["controlcenter"]="$hostname"
   else
-    echo "Skipping $name (not bootstrap or kafka-0/1/2[-lb])" >&2
+    echo "Skipping $name (not bootstrap, kafka-0/1/2[-lb], or controlcenter)" >&2
   fi
 done < <(echo "$SVC_JSON" | jq -r '.items[] | select(.status.loadBalancer.ingress != null and (.status.loadBalancer.ingress | length) > 0) | "\(.metadata.name) \(.status.loadBalancer.ingress[0].hostname // .status.loadBalancer.ingress[0].ip)"')
 
@@ -68,7 +70,7 @@ fi
 
 # Build Route 53 change batch (sanitize hostnames: no newlines/carriage returns in JSON)
 CHANGES=""
-for dns_name in kafka b0 b1 b2; do
+for dns_name in kafka b0 b1 b2 controlcenter; do
   if [[ -n "${RECORDS[$dns_name]:-}" ]]; then
     target="${RECORDS[$dns_name]}"
     target="${target//$'\r'/}"
@@ -90,4 +92,4 @@ fi
 BATCH="{\"Changes\":[$CHANGES]}"
 echo "Applying Route 53 changes to zone $ZONE_ID ..."
 aws route53 change-resource-record-sets --hosted-zone-id "$ZONE_ID" --change-batch "$BATCH"
-echo "Done. Use bootstrap server: kafka.${DOMAIN}:9092 (from pods/EC2 in the same VPC)."
+echo "Done. Kafka bootstrap: kafka.${DOMAIN}:9092 | Control Center: http://controlcenter.${DOMAIN}:9021 (from VPC)"
