@@ -6,6 +6,4 @@ resources:
   - zookeeper.yaml
   - kafka.yaml
   - schemaregistry.yaml
-  - connect.yaml
-  - ksqldb.yaml
   - controlcenter.yaml

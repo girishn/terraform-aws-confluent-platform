@@ -8,7 +8,24 @@ Reusable Terraform and manifests for **provisioning Confluent Platform (Kafka) o
 
 Use this repo to stand up an EKS cluster and Confluent Platform (Zookeeper + Kafka) that you can connect to from EC2 or pods in the same VPC.
 
-### Quick start – dev environment (copy/paste)
+### Option A – Single Python script (recommended)
+
+Prerequisites: **terraform**, **aws CLI**, **kubectl** on PATH. AWS credentials configured.
+
+```bash
+git clone <this-repo-url>
+cd terraform-aws-confluent-platform
+
+# Configure envs/dev/terraform.tfvars if needed (region, name, etc.)
+
+python scripts/provision.py --auto-approve
+```
+
+This runs terraform init/apply, updates kubeconfig, applies Confluent manifests, waits for Zookeeper and Kafka, and creates Route 53 CNAME records. Use `--skip-dns` to omit the DNS step, or `--skip-manifests` for Terraform only. Run `python scripts/provision.py --help` for options.
+
+---
+
+### Option B – Manual steps (copy/paste)
 
 1. **Clone and enter the repo**
 
@@ -68,6 +85,8 @@ Use this repo to stand up an EKS cluster and Confluent Platform (Zookeeper + Kaf
    ZONE_ID=$(terraform -chdir=envs/dev output -raw kafka_dns_zone_id)
    ZONE_ID=$ZONE_ID ./scripts/create-kafka-dns.sh
    ```
+
+   Or use the Python provisioner which creates DNS records automatically.
 
 7. **Access Control Center** (view topics, inspect messages)
 
