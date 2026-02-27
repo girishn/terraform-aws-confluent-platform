@@ -58,6 +58,11 @@ def provision_terraform(env: str, auto_approve: bool, remove_state: bool) -> Non
     if not env_dir.is_dir():
         raise SystemExit(f"Environment directory not found: {env_dir}")
 
+    if remove_state:
+        confirm = input(f"⚠️ Remove ALL Terraform state for env='{env}'? Type env name to confirm: ")
+        if confirm.strip() != env:
+            raise SystemExit("Aborted. State not removed.")
+
     if remove_state and (env_dir / "terraform.tfstate").exists():
         step("Removing Terraform state (all resources)")
         result = run(
